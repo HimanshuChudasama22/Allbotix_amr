@@ -1,0 +1,12 @@
+# AMR Device Rules
+# Install: sudo cp 99-amr-devices.rules /etc/udev/rules.d/
+# Reload: sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# YDLidar X2 (Silicon Labs CP210x)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ydlidar", MODE="0666"
+
+# Arduino Mega (QinHeng CH340)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="arduino", MODE="0666"
+
+# Monocular Camera (Microdia)
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="6368", ATTR{index}=="0", SYMLINK+="amr_camera", MODE="0666"
