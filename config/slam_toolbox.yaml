@@ -1,0 +1,166 @@
+# SLAM Toolbox - Online Async Mapping Configuration
+#
+# Small differential-drive AMR with YDLidar X2
+#
+# Objective:
+# - Create sufficiently dense pose-graph nodes.
+# - Correct moderate local odometry drift using sequential scan matching.
+# - Detect previous mapped areas during the return trip.
+# - Optimize the pose graph after a valid loop closure.
+# - Avoid extremely permissive closures in repetitive rooms/corridors.
+
+slam_toolbox:
+  ros__parameters:
+
+    ###############################################
+    ## Solver
+    ###############################################
+
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    ###############################################
+    ## Frames
+    ###############################################
+
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan_reliable
+
+    ###############################################
+    ## General
+    ###############################################
+
+    mode: mapping
+    use_map_saver: true
+    enable_interactive_mode: true
+
+    # Enable only while checking whether closures are detected.
+    debug_logging: true                   # was false
+
+    ###############################################
+    ## Timing
+    ###############################################
+
+    throttle_scans: 1
+
+    transform_publish_period: 0.02
+    map_update_interval: 1.0
+
+    resolution: 0.05
+
+    # Primarily relevant to synchronous mode.
+    minimum_time_interval: 0.3
+
+    transform_timeout: 0.2
+    tf_buffer_duration: 90.0
+
+    restamp_tf: false
+
+    stack_size_to_use: 40000000
+
+    ###############################################
+    ## Laser
+    ###############################################
+
+    min_laser_range: 0.25
+    max_laser_range: 5.0
+
+    ###############################################
+    ## Sequential Scan Matching
+    ###############################################
+
+    use_scan_matching: true
+    use_scan_barycenter: true
+
+    # 0.5 m was far too sparse for your small indoor map.
+    # Approximately one graph node every 10 cm.
+    minimum_travel_distance: 0.10         # was 0.50
+
+    # Approximately 3 degrees.
+    minimum_travel_heading: 0.05236
+
+    # Recommended behavior when rotational odometry is imperfect.
+    check_min_dist_and_heading_precisely: false
+
+    # About 2–3 m of recent local scan history at 0.10 m spacing.
+    scan_buffer_size: 25                  # was 40
+    scan_buffer_maximum_scan_distance: 4.0 # was 5.0
+
+    # Already permissive. Do not lower this further.
+    link_match_minimum_response_fine: 0.10
+
+    # Allow additional constraints between reasonably close scans.
+    link_scan_maximum_distance: 2.0       # was 1.50
+
+    ###############################################
+    ## Loop Closure
+    ###############################################
+
+    do_loop_closing: true
+
+    # Historical nodes within 4 m of the estimated current pose become
+    # candidates. This allows moderate accumulated position drift.
+    loop_search_maximum_distance: 5.0
+    loop_match_minimum_chain_size: 5
+    loop_match_maximum_variance_coarse: 5.0
+    loop_match_minimum_response_coarse: 0.25
+    loop_match_minimum_response_fine: 0.35
+
+    loop_search_space_dimension: 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    ###############################################
+    ## Loop Correlation Search
+    ###############################################
+
+    # Restore the official-size loop correlation grid.
+    # The candidate-selection distance remains limited to 4 m above.
+    loop_search_space_dimension: 8.0      # was 5.0
+
+    loop_search_space_resolution: 0.05
+
+    # Keep this narrow. A large value can merge responses from adjacent,
+    # parallel hallway walls.
+    loop_search_space_smear_deviation: 0.03
+
+    ###############################################
+    ## Scan Matcher Penalties
+    ###############################################
+
+    distance_variance_penalty: 0.50
+
+    # Critical correction:
+    # 0.10 excessively penalized deviation from odometric heading.
+    angle_variance_penalty: 1.00          # was 0.10
+
+    # Approximately ±0.4 degrees during fine refinement.
+    fine_search_angle_offset: 0.00698
+
+    # Approximately ±20 degrees during coarse matching.
+    coarse_search_angle_offset: 0.349
+
+    # Approximately 2-degree increments.
+    coarse_angle_resolution: 0.0349
+
+    minimum_angle_penalty: 0.90
+    minimum_distance_penalty: 0.50
+
+    # Expand the search if the initial region has no viable match.
+    use_response_expansion: true
+
+    ###############################################
+    ## Occupancy Grid
+    ###############################################
+
+    # Better visual continuity for the sparse X2 scan.
+    # This does not directly control pose-graph loop closure.
+    min_pass_through: 1                   # was 2
+
+    occupancy_threshold: 0.25

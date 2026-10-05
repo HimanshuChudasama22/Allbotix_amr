@@ -1,0 +1,49 @@
+# Filter raw ultrasonic Range topics before they reach scan conversion,
+# collision monitor, and the costmap.
+#
+# window_size:
+#   Median window. Odd values work best. Kills 1-2 sample spikes.
+#
+# spike_threshold:
+#   Jump (m) allowed without extra confirmation. Larger jumps must
+#   repeat confirm_count times within confirm_tolerance.
+#
+# confirm_count / confirm_tolerance:
+#   A new distance is accepted only after this many consecutive
+#   similar readings. Rejects floor bounce and crosstalk flashes.
+#
+# ema_alpha:
+#   Smoothing after a reading is accepted. 1.0 = no extra lag,
+#   0.3 = smoother. 0.5 is a middle ground.
+
+range_filter:
+  ros__parameters:
+    us_center.range_topic: /range_center
+    us_center.filtered_topic: /range_center_filtered
+    us_center.window_size: 5
+    us_center.spike_threshold: 0.12
+    us_center.confirm_count: 3
+    us_center.confirm_tolerance: 0.08
+    us_center.ema_alpha: 0.5
+    us_center.min_range: 0.00
+    us_center.max_range: 3.0
+
+    us_right.range_topic: /range_right
+    us_right.filtered_topic: /range_right_filtered
+    us_right.window_size: 3
+    us_right.spike_threshold: 0.12
+    us_right.confirm_count: 2
+    us_right.confirm_tolerance: 0.08
+    us_right.ema_alpha: 0.5
+    us_right.min_range: 0.00
+    us_right.max_range: 1.5
+
+    us_left.range_topic: /range_left
+    us_left.filtered_topic: /range_left_filtered
+    us_left.window_size: 5
+    us_left.spike_threshold: 0.12
+    us_left.confirm_count: 2
+    us_left.confirm_tolerance: 0.08
+    us_left.ema_alpha: 0.5
+    us_left.min_range: 0.00
+    us_left.max_range: 1.5

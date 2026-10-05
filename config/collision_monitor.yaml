@@ -1,0 +1,56 @@
+# Ultrasound slowdown and recovery are ramped before reaching the motors.
+# cmd_vel -> cmd_vel_slow -> cmd_vel_safe.
+collision_monitor:
+  ros__parameters:
+    use_sim_time: False
+    base_frame_id: "base_link"
+    odom_frame_id: "odom"
+    cmd_vel_in_topic: "cmd_vel"
+    cmd_vel_out_topic: "cmd_vel_slow"
+    transform_tolerance: 0.5
+    source_timeout: 1.0
+    base_shift_correction: False
+    stop_pub_timeout: 2.0
+    polygons: [ "PolygonSlow"]
+    PolygonSlow:
+      type: "polygon"
+      # points: [0.70, 0.28, 0.70, -0.28, 0.18, -0.28, 0.18, 0.28]
+      points: [1.20, 0.4, 1.20, -0.4, -0.35, -0.4, -0.35, 0.4]
+      action_type: "slowdown"
+      max_points: 0
+      slowdown_ratio: 0.35 #0.35
+      visualize: True
+      polygon_pub_topic: "polygon_slowdown"
+      enabled: True
+    observation_sources: ["us_center", "us_left", "us_right"]
+    us_center:
+      type: "scan"
+      topic: "/scan_us_center"
+      enabled: True
+      obstacles_angle: 0.05
+    us_left:
+      type: "scan"
+      topic: "/scan_us_left"
+      enabled: True
+      obstacles_angle: 0.05
+    us_right:
+      type: "scan"
+      topic: "/scan_us_right"
+      enabled: True
+      obstacles_angle: 0.05
+
+# This smoother handles entering AND leaving PolygonSlow.
+slowdown_velocity_smoother:
+  ros__parameters:
+    use_sim_time: False
+    smoothing_frequency: 20.0
+    feedback: "OPEN_LOOP"
+    scale_velocities: False
+    max_velocity: [0.55, 0.0, 0.85]
+    min_velocity: [-0.15, 0.0, -0.85]
+    max_accel: [0.25, 0.0, 0.90]
+    max_decel: [-0.50, 0.0, -0.90]
+    odom_topic: "diff_drive_controller/odom"
+    odom_duration: 0.1
+    deadband_velocity: [0.0, 0.0, 0.0]
+    velocity_timeout: 0.5

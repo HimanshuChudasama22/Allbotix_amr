@@ -1,0 +1,724 @@
+amcl:
+  ros__parameters:
+    use_sime_time: False
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
+    base_frame_id: "base_link"
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3
+    do_beamskip: false
+    global_frame_id: "map"
+    lambda_short: 0.1
+    laser_likelihood_max_dist: 2.0
+    laser_max_range: 100.0
+    laser_min_range: -1.0
+    laser_model_type: "likelihood_field"
+    max_beams: 60
+    max_particles: 4000 #2000
+    min_particles: 700 #500
+    odom_frame_id: "odom"
+    pf_err: 0.05
+    pf_z: 0.99
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    resample_interval: 1
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    save_pose_rate: 0.5
+    sigma_hit: 0.2
+    tf_broadcast: true
+    transform_tolerance: 1.0
+    update_min_a: 0.2
+    update_min_d: 0.25
+    z_hit: 0.5
+    z_max: 0.05
+    z_rand: 0.5
+    z_short: 0.05
+    scan_topic: scan
+
+bt_navigator:
+  ros__parameters:
+    use_sime_time: False
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /diff_drive_controller/odom
+    bt_loop_duration: 10
+    default_server_timeout: 20
+    # Replan only when the path is ~10s old or becomes invalid, not at 1 Hz.
+    # Custom tree: no 90° Spin recovery (that is the fast CCW yaw-away),
+    # and backup is short so it cannot reverse into a wall.
+    default_nav_to_pose_bt_xml: "/home/himanshu/amr_ws/src/amr_mapping/config/nav_to_pose.xml"
+    # Multi-goal navigation needs its own tree; the single-goal tree is not used.
+    default_nav_through_poses_bt_xml: "/home/himanshu/amr_ws/src/amr_mapping/config/nav_through_poses.xml"
+    plugin_lib_names:
+    - nav2_compute_path_to_pose_action_bt_node
+    - nav2_compute_path_through_poses_action_bt_node
+    - nav2_smooth_path_action_bt_node
+    - nav2_follow_path_action_bt_node
+    - nav2_spin_action_bt_node  
+    - nav2_wait_action_bt_node
+    - nav2_assisted_teleop_action_bt_node
+    - nav2_back_up_action_bt_node
+    - nav2_drive_on_heading_bt_node
+    - nav2_clear_costmap_service_bt_node
+    - nav2_is_stuck_condition_bt_node
+    - nav2_goal_reached_condition_bt_node
+    - nav2_goal_updated_condition_bt_node
+    - nav2_globally_updated_goal_condition_bt_node
+    - nav2_is_path_valid_condition_bt_node
+    - nav2_initial_pose_received_condition_bt_node
+    - nav2_reinitialize_global_localization_service_bt_node
+    - nav2_rate_controller_bt_node
+    - nav2_distance_controller_bt_node
+    - nav2_speed_controller_bt_node
+    - nav2_truncate_path_action_bt_node
+    - nav2_truncate_path_local_action_bt_node
+    - nav2_goal_updater_node_bt_node
+    - nav2_recovery_node_bt_node
+    - nav2_pipeline_sequence_bt_node
+    - nav2_round_robin_node_bt_node
+    - nav2_transform_available_condition_bt_node
+    - nav2_time_expired_condition_bt_node
+    - nav2_path_expiring_timer_condition
+    - nav2_distance_traveled_condition_bt_node
+    - nav2_single_trigger_bt_node
+    - nav2_goal_updated_controller_bt_node
+    - nav2_is_battery_low_condition_bt_node
+    - nav2_navigate_through_poses_action_bt_node
+    - nav2_navigate_to_pose_action_bt_node
+    - nav2_remove_passed_goals_action_bt_node
+    - nav2_planner_selector_bt_node
+    - nav2_controller_selector_bt_node
+    - nav2_goal_checker_selector_bt_node
+    - nav2_controller_cancel_bt_node
+    - nav2_path_longer_on_approach_bt_node
+    - nav2_wait_cancel_bt_node
+    - nav2_spin_cancel_bt_node
+    - nav2_back_up_cancel_bt_node
+    - nav2_assisted_teleop_cancel_bt_node
+    - nav2_drive_on_heading_cancel_bt_node
+
+bt_navigator_navigate_through_poses_rclcpp_node:
+  ros__parameters:
+    use_sime_time: False
+
+bt_navigator_navigate_to_pose_rclcpp_node:
+  ros__parameters:
+    use_sime_time: False
+
+controller_server:
+  ros__parameters:
+    # Must equal 1/model_dt so Humble MPPI enables control-sequence shifting
+    # (publishes the next timestep — ~50 ms of plant delay compensation).
+    controller_frequency: 20.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 1.0
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["general_goal_checker"]
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.20
+      movement_time_allowance: 12.0
+    general_goal_checker:
+      stateful: True
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+
+    FollowPath:
+      plugin: "nav2_mppi_controller::MPPIController"
+
+      # Horizon: 56 * 0.05 = 2.8 s → 1.4 m at 0.5 m/s (fits 2.0 m local radius).
+      # Longer horizon lets MPPI plan a gentle S instead of a snap-to-path turn.
+      time_steps: 56
+      model_dt: 0.05
+      batch_size: 1000
+      iteration_count: 1
+      prune_distance: 1.7
+      transform_tolerance: 0.1
+      temperature: 0.35         # 0.5 averaged colliding samples into near-zero cmd_vel
+      gamma: 0.015
+      retry_attempt_limit: 2
+      visualize: false          # viz at 1000 batches drops cycles and jerks cmd_vel
+      regenerate_noises: false
+
+      motion_model: "DiffDrive"
+
+      # Match velocity_smoother. Humble MPPI has no ax/az limits.
+      # No reverse — BackUp recovery handles unsticking.
+      vx_max: 0.55
+      vx_min: 0.0
+      wz_max: 0.85
+      ax_max: 0.8               # ignored by Humble MPPI; kept in sync with smoother
+      ax_min: 0.0 #-1.0
+      az_max: 1.0 #0.90
+
+      # 0.8 weaved; 0.18 could not sample the heading change in a corridor.
+      vx_std: 0.22
+      vy_std: 0.0
+      wz_std: 0.30
+
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+
+      critics: ["ConstraintCritic", "CostCritic", "GoalCritic", "GoalAngleCritic",
+                "PathAlignCritic", "PathFollowCritic", "PathAngleCritic",
+                "PreferForwardCritic", "ObstaclesCritic", "TwirlingCritic"]
+
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+
+      CostCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.2        # < 3.81 so it will enter inflation instead of freezing
+        critical_cost: 250.0    # 280 made sitting in red inflation cheaper than moving
+        consider_footprint: true
+        collision_cost: 1000000.0
+        near_goal_distance: 0.40
+        trajectory_point_step: 2
+
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 10.0       # must beat CostCritic while already in inflation
+        offset_from_furthest: 6
+        threshold_to_consider: 1.4  # ≈ prediction distance; hand-off to GoalCritic
+
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 10.0 #12.0       # 18 snapped; 10 with offset 20 never engaged at start
+        max_path_occupancy_ratio: 0.07
+        trajectory_point_step: 4
+        threshold_to_consider: 0.50
+        offset_from_furthest: 14
+        use_path_orientations: true  # Smac Lattice paths carry yaw; follow heading
+
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 2.5        # only active when heading error > max_angle_to_furthest
+        offset_from_furthest: 4
+        threshold_to_consider: 0.50
+        max_angle_to_furthest: 0.85  # only fight large misalignment, not every 30°
+        forward_preference: true
+
+      PreferForwardCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.50
+
+      ObstaclesCritic:
+        enabled: false          # CostCritic already scores footprint; both freeze in inflation
+        cost_power: 1
+        consider_footprint: true
+        repulsion_weight: 0.3
+        critical_weight: 10.0
+        collision_cost: 100000.0
+        collision_margin_distance: 0.02
+        near_goal_distance: 0.40
+
+      TwirlingCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0        # 10 forbade the heading change this pose needs
+
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 1.4
+
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.0
+        threshold_to_consider: 0.50
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 15.0 #20.0 #15.0 #5.0
+      publish_frequency: 5.0 #5.0 #2.0
+      global_frame: odom
+      robot_base_frame: base_link
+      use_sime_time: False
+      rolling_window: true
+      width: 4 #3
+      height: 4 #3
+      resolution: 0.05
+      # footprint: "[[0.25, 0.25], [0.25, -0.25], [-0.35, -0.25], [-0.36, 0.25]]"
+      footprint: "[[0.26, 0.20], [0.26, -0.20], [-0.36, -0.20], [-0.36, 0.20]]"
+      # robot_radius: 0.40
+      footprint_padding: 0.02
+      plugins: ["static_layer","obstacle_layer","obstacle_layer2" ,"stvl_layer", "inflation_layer"]
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 1.5 #1.1 #4.0
+        inflation_radius: 0.65 #0.32
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: True
+        footprint_clearing_enabled: true
+        publish_voxel_map: True
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 0.5
+        mark_threshold: 0
+        observation_sources: camera
+        combination_method: 1 
+        camera:
+          topic: /camera/depth/points
+          max_obstacle_height: 0.5 #1.0
+          min_obstacle_height: 0.0
+          data_type: "PointCloud2"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.4
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.4
+          clearing: True
+          marking: True
+          data_type: "PointCloud2"
+          transport_type: "raw"
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        footprint_clearing_enabled: true
+        combination_method: 1
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 3.0 #3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5 #2.5
+          obstacle_min_range: 0.0
+          marking: True
+          clearing: True
+          data_type: "LaserScan"
+          inf_is_valid: false
+      obstacle_layer2:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        combination_method: 1
+        footprint_clearing_enabled: true
+        observation_sources: scan_us_center scan_us_right scan_us_left
+        scan_us_center:
+          topic: /scan_us_center
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          min_obstacle_height: 0.05
+          max_obstacle_height: 0.5
+          raytrace_max_range: 3.0 # 3.0  # keep >= range_to_scan clear_range (2.8) so empty US cones clear locally
+          raytrace_min_range: 0.00
+          obstacle_max_range: 0.75 #0.70
+          obstacle_min_range: 0.00
+          inf_is_valid: false
+        scan_us_right:
+          topic: /scan_us_right
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          min_obstacle_height: 0.05
+          max_obstacle_height: 0.5
+          raytrace_max_range: 3.0 # 3.0  # keep >= range_to_scan clear_range (2.8) so empty US cones clear locally
+          raytrace_min_range: 0.00
+          obstacle_max_range: 0.40 #0.30
+          obstacle_min_range: 0.00
+          inf_is_valid: false
+        scan_us_left:
+          topic: /scan_us_left
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          min_obstacle_height: 0.05
+          max_obstacle_height: 0.5
+          raytrace_max_range: 3.0 # 3.0  # keep >= range_to_scan clear_range (2.8) so empty US cones clear locally
+          raytrace_min_range: 0.00
+          obstacle_max_range: 0.40 #0.30
+          obstacle_min_range: 0.00
+          inf_is_valid: false
+      range_layer1:
+        plugin: "range_layer::RangeLayer"
+        enabled: True
+        use_common_params: true # Set to true to use common defaults for all topics, false for topic overrides
+        common_keep_time: 1.0   # [double] Time in seconds to keep range readings in the costmap before pruning
+        common_fov_padding: 0.2 # [double] Padding in radians added to the sensor's field of view
+        common_min_dist: 0.03   # [double] Minimum sensor range in meters below which readings are ignored
+        common_max_dist: 1.0    # [double] Maximum sensor range in meters above which readings are ignored
+        topics: [
+          "/range_center_filtered",
+          "/range_right_filtered",
+          "/range_left_filtered"
+        ]
+
+        # Used only when use_common_params is false.
+        _range_center_filtered:
+          keep_time: 1.0        # [double] Time in seconds to keep readings for this sensor
+          fov_padding: 0.01     # [double] FOV padding in radians for this sensor
+          min_dist: 0.05        # [double] Minimum sensor range in meters for this sensor
+          max_dist: 5.0         # [double] Maximum sensor range in meters for this sensor
+        _range_right_filtered:
+          keep_time: 1.0        # [double] Time in seconds to keep readings for this sensor
+          fov_padding: 0.01     # [double] FOV padding in radians for this sensor
+          min_dist: 0.05        # [double] Minimum sensor range in meters for this sensor
+          max_dist: 5.0         # [double] Maximum sensor range in meters for this sensor
+        _range_left_filtered:
+          keep_time: 1.0        # [double] Time in seconds to keep readings for this sensor
+          fov_padding: 0.01     # [double] FOV padding in radians for this sensor
+          min_dist: 0.05        # [double] Minimum sensor range in meters for this sensor
+          max_dist: 5.0         # [double] Maximum sensor range in meters for this sensor
+
+      range_layer2:
+        plugin: "nav2_costmap_2d::RangeSensorLayer"
+        enabled: True
+        topics: ["/range_center_filtered", "/range_right_filtered", "/range_left_filtered"]
+        transform_tolerance: 0.3
+        clear_on_max_reading: true
+        clear_threshold: 0.2
+        mark_threshold: 0.8
+        no_readings_timeout: 5.0
+        clear_after_reading: true
+        max_distance: 0.5
+        min_distance: 0.03
+        clear_on_max_reading: true
+        buffer_size: 10
+        observation_persistence: 2.0
+        inf_is_valid: false
+
+      denoise_layer:
+        plugin: "nav2_costmap_2d::DenoiseLayer"
+        enabled: true
+        minimal_group_size: 2
+        group_connectivity_type: 8
+
+      stvl_layer:
+        plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+        enabled: true
+        voxel_size: 0.05
+        voxel_decay: 2.0          # seconds with no hit → gone (raise to 4–6 if it flickers)
+        decay_model: 0            # 0 = linear decay
+        publish_voxel_map: true
+        combination_method: 1
+        origin_z: 0.0
+        unknown_threshold: 15
+        mark_threshold: 2         # ignore 1-voxel speckle
+        update_footprint_enabled: true
+        observation_sources: camera
+        camera:
+          data_type: PointCloud2
+          topic: /camera/depth/points
+          marking: true
+          clearing: true
+          min_obstacle_height: 0.12   # was 0.0 → floor voxels that never clear
+          max_obstacle_height: 0.5
+          obstacle_range: 2.5
+          min_z: 0.12
+          max_z: 0.5
+          vertical_fov_angle: 0.87    # match your camera (~50° → 0.87 rad)
+          horizontal_fov_angle: 1.05  # match your camera (~60° → 1.05 rad)
+          decay_acceleration: 1.0
+          model_type: 0               # 0 = depth camera
+          filter: "voxel"
+          voxel_min_points: 2
+          clear_after_reading: true
+          observation_persistence: 0.0
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      always_send_full_costmap: True
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: map
+      robot_base_frame: base_link
+      use_sime_time: False
+      footprint: "[[0.25, 0.25], [0.25, -0.25], [-0.35, -0.25], [-0.35, 0.25]]"
+      # footprint: "[[0.26, 0.30], [0.26, -0.30], [-0.36, -0.30], [-0.36, 0.30]]"
+      # robot_radius: 0.40
+      footprint_padding: 0.05
+      resolution: 0.05
+      track_unknown_space: true
+      plugins: ["static_layer","obstacle_layer","obstacle_layer2","stvl_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        footprint_clearing_enabled: true
+        combination_method: 1
+        scan:
+          topic: /scan
+          max_obstacle_height: 1.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 6.0 #4.0 #3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5 #3.5 #2.5
+          obstacle_min_range: 0.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          #inf_is_valid: false
+      obstacle_layer2:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        combination_method: 1
+        footprint_clearing_enabled: true #false
+        observation_sources: scan_us_center scan_us_right scan_us_left
+        # scan:
+        #   topic: /scan
+        #   max_obstacle_height: 1.0
+        #   clearing: True
+        #   marking: True
+        #   data_type: "LaserScan"
+        #   raytrace_max_range: 4.0 #3.0
+        #   raytrace_min_range: 0.0
+        #   obstacle_max_range: 3.5 #2.5
+        #   obstacle_min_range: 0.0
+        #   clearing: True
+        #   marking: True
+        #   data_type: "LaserScan"
+          #inf_is_valid: false
+        scan_us_center:
+          topic: /scan_us_center
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          min_obstacle_height: 0.0
+          max_obstacle_height: 0.5
+          raytrace_max_range: 3.0 #0.0 # 3.0  # do not let empty US cones clear global; planner should go around
+          raytrace_min_range: 0.0
+          obstacle_max_range: 1.5
+          obstacle_min_range: 0.0
+          inf_is_valid: false
+        scan_us_right:
+          topic: /scan_us_right
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          min_obstacle_height: 0.0
+          max_obstacle_height: 0.5
+          raytrace_max_range: 3.0 #0.0 # 1.5  # do not let empty US cones clear global; planner should go around
+          raytrace_min_range: 0.0
+          obstacle_max_range: 0.5
+          obstacle_min_range: 0.0
+          inf_is_valid: false
+        scan_us_left:
+          topic: /scan_us_left
+          data_type: "LaserScan"
+          marking: True
+          clearing: True
+          min_obstacle_height: 0.0
+          max_obstacle_height: 0.5
+          raytrace_max_range: 3.0 #0.0 # 1.5  # do not let empty US cones clear global; planner should go around
+          raytrace_min_range: 0.0
+          obstacle_max_range: 0.5
+          obstacle_min_range: 0.0
+          inf_is_valid: false
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: True
+        footprint_clearing_enabled: true
+        publish_voxel_map: True
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 0.5
+        mark_threshold: 0
+        observation_sources: camera
+        combination_method: 1 
+        camera:
+          topic: /camera/depth/points
+          max_obstacle_height: 0.5
+          min_obstacle_height: 0.12 #0.0
+          clearing: True
+          marking: True
+          data_type: "PointCloud2"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.4
+          obstacle_max_range: 1.5 
+          obstacle_min_range: 0.4
+          clearing: True
+          marking: True
+          data_type: "PointCloud2"
+          transport_type: "raw"
+      stvl_layer:
+        plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+        enabled: true
+        voxel_size: 0.05
+        voxel_decay: 2.0          # seconds with no hit → gone (raise to 4–6 if it flickers)
+        decay_model: 0            # 0 = linear decay
+        publish_voxel_map: true
+        combination_method: 1
+        origin_z: 0.0
+        unknown_threshold: 15
+        mark_threshold: 2         # ignore 1-voxel speckle
+        update_footprint_enabled: true
+        observation_sources: camera
+        camera:
+          data_type: PointCloud2
+          topic: /camera/depth/points
+          marking: true
+          clearing: true
+          min_obstacle_height: 0.12   # was 0.0 → floor voxels that never clear
+          max_obstacle_height: 0.5
+          obstacle_range: 2.5
+          min_z: 0.12
+          max_z: 0.5
+          vertical_fov_angle: 0.87    # match your camera (~50° → 0.87 rad)
+          horizontal_fov_angle: 1.05  # match your camera (~60° → 1.05 rad)
+          decay_acceleration: 1.0
+          model_type: 0               # 0 = depth camera
+          filter: "voxel"
+          voxel_min_points: 2
+          clear_after_reading: true
+          observation_persistence: 0.0
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 2.0 #1.5 #4.0
+        inflation_radius: 0.65 #0.32
+      always_send_full_costmap: True
+
+map_server:
+  ros__parameters:
+    use_sime_time: False
+    # Overridden in launch by the "map" launch configuration or provided default value.
+    # To use in yaml, remove the default "map" value in the tb3_simulation_launch.py file & provide full path to map below.
+    yaml_filename: ""
+
+map_saver:
+  ros__parameters:
+    use_sime_time: False
+    save_map_timeout: 5.0
+    free_thresh_default: 0.25
+    occupied_thresh_default: 0.65
+    map_subscribe_transient_local: True
+
+planner_server:
+  ros__parameters:
+    planner_plugins: ["GridBased"]
+
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlannerLattice" # In Iron and older versions, "/" was used instead of "::"
+      allow_unknown: true                 # Allow traveling in unknown space
+      tolerance: 0.25                     # dist-to-goal heuristic cost (distance) for valid tolerance endpoints if exact goal cannot be found.
+      max_iterations: 3000000             # More search capacity for long routes; time limit still bounds failure.
+      max_on_approach_iterations: 1000    # Maximum number of iterations after within tolerances to continue to try to find exact solution
+      max_planning_time: 15.0             # Per-segment search/smoothing budget, not total multi-goal action time.
+      analytic_expansion_ratio: 3.5       # The ratio to attempt analytic expansions during search for final approach.
+      analytic_expansion_max_length: 2.5 #1.2  # For Hybrid/Lattice nodes The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting
+      analytic_expansion_max_cost: 150.0 #200.0  # The maximum single cost for any part of an analytic expansion to contain and be valid, except when necessary on approach to goal
+      analytic_expansion_max_cost_override: true #false  #  Whether or not to override the maximum cost setting if within critical distance to goal (ie probably required)
+      downsample_obstacle_heuristic: true   # Downsample the obstacle map dynamic programming distance expansion heuristic to speed up search at the cost of some path quality
+      use_quadratic_cost_penalty: false   # Use quadratic cost penalty for traversal and heuristic cost computations rather than linear
+      reverse_penalty: 2.0                # Penalty to apply if motion is reversing, must be => 1
+      change_penalty: 0.0                 # Avoid penalizing direction changes needed at corridor bends.
+      non_straight_penalty: 1.05          # Penalty to apply if motion is non-straight, must be => 1
+      cost_penalty: 1.8 #2.0                   # Penalty to apply to higher cost areas when adding into the obstacle map dynamic programming distance expansion heuristic. This drives the robot more towards the center of passages. A value between 1.3 - 3.5 is reasonable.
+      rotation_penalty: 1.0 #5.0               # Penalty to apply to in-place rotations, if minimum control set contains them
+      retrospective_penalty: 0.015
+      lattice_filepath: "/opt/ros/humble/share/nav2_smac_planner/sample_primitives/5cm_resolution/0.5m_turning_radius/diff/output.json"                # The filepath to the state lattice graph
+      lookup_table_size: 40.0             # Larger heuristic window for long routes; uses more startup time/memory.
+      cache_obstacle_heuristic: false     # Cache the obstacle map dynamic programming distance expansion heuristic between subsequent replannings of the same goal location. Dramatically speeds up replanning performance (40x) if costmap is largely static.
+      allow_reverse_expansion: false      # If true, allows the robot to use the primitives to expand in the mirrored opposite direction of the current robot's orientation (to reverse).
+      coarse_search_resolution: 1         # Number of bins to skip when doing a coarse search for the path. Only used for all_direction goal heading mode.
+      goal_heading_mode: "DEFAULT"        # DEFAULT, BIDIRECTIONAL, ALL_DIRECTION
+      smooth_path: True                   # If true, does a simple and quick smoothing post-processing to the path
+      smoother:
+        max_iterations: 1000
+        w_smooth: 0.3
+        w_data: 0.2
+        tolerance: 1.0e-10
+        do_refinement: true
+        refinement_num: 2
+        
+smoother_server:
+  ros__parameters:
+    use_sime_time: False
+    smoother_plugins: ["simple_smoother"]
+    simple_smoother:
+      plugin: "nav2_smoother::SimpleSmoother"
+      tolerance: 1.0e-10
+      max_its: 1000
+      do_refinement: True
+
+behavior_server:
+  ros__parameters:
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
+    backup:
+      plugin: "nav2_behaviors/BackUp"
+    drive_on_heading:
+      plugin: "nav2_behaviors/DriveOnHeading"
+    wait:
+      plugin: "nav2_behaviors/Wait"
+    assisted_teleop:
+      plugin: "nav2_behaviors/AssistedTeleop"
+    global_frame: odom
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
+    use_sime_time: False
+    simulate_ahead_time: 1.5
+    max_rotational_vel: 0.6
+    min_rotational_vel: 0.25
+    rotational_acc_lim: 1.2
+
+robot_state_publisher:
+  ros__parameters:
+    use_sime_time: False
+
+waypoint_follower:
+  ros__parameters:
+    use_sime_time: False
+    loop_rate: 20
+    stop_on_failure: false
+    waypoint_task_executor_plugin: "wait_at_waypoint"
+    wait_at_waypoint:
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      enabled: True
+      waypoint_pause_duration: 200
+
+velocity_smoother:
+  ros__parameters:
+    use_sime_time: False
+    smoothing_frequency: 20.0
+    # Do not scale vx down with wz — that made corridor turns creep.
+    # OPEN_LOOP: delayed wheel odom in CLOSED_LOOP never ramped off zero.
+    scale_velocities: False
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.55, 0.0, 0.85]
+    min_velocity: [-0.15, 0.0, -0.85]
+    max_accel: [0.250, 0.0, 0.90] #[0.80, 0.0, 0.90]
+    max_decel: [-1.0, 0.0, -0.90]
+    odom_topic: "diff_drive_controller/odom"
+    odom_duration: 0.1
+    deadband_velocity: [0.0, 0.0, 0.0]
+    velocity_timeout: 1.0

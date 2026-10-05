@@ -1,0 +1,78 @@
+# A21 Modbus RTU ultrasonic sensors
+# Devices:
+#   /dev/ultrasound_1 -> center
+#   /dev/ultrasound_2 -> right
+#   /dev/ultrasound_3 -> left
+#
+# mark_min_range ignores floor bounce from the 2.5 cm mounts. Consecutive
+# detections are marked; range is allowed to shrink while approaching.
+# publish_cloud enables /range_*/cloud and /range_*/clear PointCloud2 topics.
+
+a21_ultrasound_center:
+  ros__parameters:
+    port: /dev/ultrasound1
+    baud: 115200
+    slave: 1
+    topic: /range_center
+    cloud_topic: /range_center/cloud
+    clear_cloud_topic: /range_center/clear
+    publish_cloud: false
+    frame_id: us_center
+    min_range: 0.03
+    max_range: 3.0
+    mark_min_range: 0.03
+    field_of_view: 0.35 #0.87
+    clear_ratio: 0.92
+    hit_confirm_count: 2
+    hit_confirm_window: 3
+    hit_confirm_tolerance: 0.25
+    mark_width: 0.12
+    retries: 2
+    retry_delay: 0.01
+    timeout: 0.25
+
+a21_ultrasound_right:
+  ros__parameters:
+    port: /dev/ultrasound2
+    baud: 115200
+    slave: 1
+    topic: /range_right
+    cloud_topic: /range_right/cloud
+    clear_cloud_topic: /range_right/clear
+    publish_cloud: false
+    frame_id: us_right
+    min_range: 0.03
+    max_range: 1.5
+    mark_min_range: 0.03
+    field_of_view: 0.35 #0.87
+    clear_ratio: 0.92
+    hit_confirm_count: 2
+    hit_confirm_window: 3
+    hit_confirm_tolerance: 0.25
+    mark_width: 0.12
+    retries: 2
+    retry_delay: 0.01
+    timeout: 0.25
+
+a21_ultrasound_left:
+  ros__parameters:
+    port: /dev/ultrasound3
+    baud: 115200
+    slave: 1
+    topic: /range_left
+    cloud_topic: /range_left/cloud
+    clear_cloud_topic: /range_left/clear
+    publish_cloud: false
+    frame_id: us_left
+    min_range: 0.03
+    max_range: 1.5
+    mark_min_range: 0.03
+    field_of_view: 0.35 #0.87
+    clear_ratio: 0.92
+    hit_confirm_count: 2
+    hit_confirm_window: 3
+    hit_confirm_tolerance: 0.25
+    mark_width: 0.12
+    retries: 2
+    retry_delay: 0.01
+    timeout: 0.25

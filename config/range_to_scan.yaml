@@ -1,0 +1,101 @@
+# Convert each ultrasonic Range topic into a LaserScan arc.
+# Subscribes to the filtered Range topics from range_filter.
+#
+# max_dist / min_dist:
+#   Hits outside this window are not marked as obstacles.
+#   With variable range on, max_dist is the high-speed mark horizon.
+#   min_dist is the sensor floor, not the stopped horizon.
+#
+# enable_clear_scan / clear_range:
+#   When there is no echo in the speed window (or the scan would be
+#   empty / 0 points), publish a finite cone at clear_range instead of
+#   dropping the beams. Nav2 local raytrace can then wipe leftover marks
+#   without marking a wall at that range (clear_range must be greater
+#   than local obstacle_max_range and less than local raytrace_max_range).
+#   false restores the old short-horizon empty scan.
+#
+# max_scan_density:
+#   Point count of the arc at min_dist.
+#
+# dist_density_ratio:
+#   How fast that count falls as range grows.
+#     n = max_scan_density * (min_dist / range) ** dist_density_ratio
+#   0.0 keeps the full point count at every distance.
+#   1.0 halves the count when range is 2x min_dist.
+#
+# inflation:
+#   Fraction of the Range field_of_view used for the scan arc.
+#   1.0 = the full cone, 0.5 = half the cone, 2.0 = twice the cone.
+#
+# Variable range (per sensor, speed-based scan horizon):
+#   enable_variable_range:
+#     false keeps that sensor's static max_dist window.
+#     true scales that sensor's scan range_max with robot speed.
+#   min/max_linear_speed, min/max_angular_speed:
+#     Speeds at which that sensor's horizon is fully collapsed / fully open.
+#   dist_to_angular_weight_ratio:
+#     0.0 = only linear speed, 1.0 = only angular speed.
+#     In between, a blend: factor = (1-w)*lin + w*ang
+#   stopped_min_dist:
+#     Mark horizon while stopped (speed factor = 0). Echoes beyond this
+#     are not marked. If enable_clear_scan is true they still produce a
+#     clear_range cone.
+#   Horizon:
+#     range_max = stopped_min_dist + (max_dist - stopped_min_dist) * factor
+#   Speed comes from the larger of |odom| and |cmd_vel|.
+
+range_to_scan:
+  ros__parameters:
+    odom_topic: /diff_drive_controller/odom
+    cmd_vel_topic: /cmd_vel
+
+    us_center.range_topic: /range_center_filtered
+    us_center.scan_topic: /scan_us_center
+    us_center.max_dist: 1.5 #3.0
+    us_center.min_dist: 0.00
+    us_center.max_scan_density: 50 #21
+    us_center.dist_density_ratio: 0.8 #0.5
+    us_center.inflation: 0.2 #0.5
+    us_center.enable_variable_range: true
+    us_center.min_linear_speed: 0.15
+    us_center.max_linear_speed: 1.3 #1.5 #0.5
+    us_center.min_angular_speed: 0.1
+    us_center.max_angular_speed: 0.7
+    us_center.dist_to_angular_weight_ratio: 0.0
+    us_center.stopped_min_dist: 0.5 #0.5
+    us_center.enable_clear_scan: true
+    us_center.clear_range: 2.8
+
+    us_right.range_topic: /range_right_filtered
+    us_right.scan_topic: /scan_us_right
+    us_right.max_dist: 3.0
+    us_right.min_dist: 0.00
+    us_right.max_scan_density: 11
+    us_right.dist_density_ratio: 0.5
+    us_right.inflation: 0.2
+    us_right.enable_variable_range: true
+    us_right.min_linear_speed: 0.15
+    us_right.max_linear_speed: 1.5 #3.0
+    us_right.min_angular_speed: 0.1
+    us_right.max_angular_speed: 0.7
+    us_right.dist_to_angular_weight_ratio: 0.0
+    us_right.stopped_min_dist: 0.5 #0.25
+    us_right.enable_clear_scan: true
+    us_right.clear_range: 2.8
+
+    us_left.range_topic: /range_left_filtered
+    us_left.scan_topic: /scan_us_left
+    us_left.max_dist: 3.0
+    us_left.min_dist: 0.00
+    us_left.max_scan_density: 11
+    us_left.dist_density_ratio: 0.5
+    us_left.inflation: 0.2
+    us_left.enable_variable_range: true
+    us_left.min_linear_speed: 0.15
+    us_left.max_linear_speed: 1.5 #3.0
+    us_left.min_angular_speed: 0.1
+    us_left.max_angular_speed: 0.7
+    us_left.dist_to_angular_weight_ratio: 0.0
+    us_left.stopped_min_dist: 0.5 #0.25
+    us_left.enable_clear_scan: true
+    us_left.clear_range: 2.8
